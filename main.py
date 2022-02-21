@@ -8,7 +8,9 @@ from bson.objectid import ObjectId
 import snscrape.modules.twitter as sntwitter
 import os
 import atexit
+
 from flask import Flask, request
+from flask_cors import CORS
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -82,6 +84,7 @@ for query in queries:
 sched.start()
 
 app = Flask(__name__)
+CORS(app)
 
 # Route to create a new query
 @app.route('/query/new', methods=['POST'])
@@ -146,6 +149,64 @@ def getTweetsFromQuery(id):
     return {
         'status': 500,
         'message': 'Query not found'
+    }
+
+@app.route('/query/list/geojson/<string:id>', methods=['GET'])
+def getTweetsFromQueryGeoJSON(id):
+    for query in queries:
+        if query.id == ObjectId(id):
+            tweets = db.getBestTweets(query.maxTweets, query)
+            response = {
+                'type': 'FeatureCollection',
+                'features': []
+            }
+            for tweet in tweets:
+                response['features'].append({
+                    'type': 'Feature',
+                    'properties': {
+                        'id': str(tweet.id),
+                        'score': tweet.relatabilityScore
+                    },
+                    'geometry': tweet.location
+                })
+            return {
+                'status': 200,
+                'message': 'Successfully retrieved tweets',
+                'geojson': response
+            }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    }
+
+@app.route('/query/active/list/geojson', methods=['GET'])
+def getGeoJSONFromAllActiveQueries():
+    response = {
+        'type': 'FeatureCollection',
+        'features': []
+    }
+    for query in queries:
+        try:
+            tweets = db.getBestTweets(query.maxTweets, query)
+        except:
+            return {
+                'status': 500,
+                'message': 'Query not found'
+            }
+        for tweet in tweets:
+            response['features'].append({
+                'type': 'Feature',
+                'properties': {
+                    'id': str(tweet.id),
+                    'score': tweet.relatabilityScore,
+                    'query': str(query.id)
+                },
+                'geometry': tweet.location
+            })
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved tweets',
+        'geojson': response
     }
 
 if __name__ == '__main__':

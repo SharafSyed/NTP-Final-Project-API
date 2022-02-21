@@ -1,16 +1,33 @@
 from prettytable import PrettyTable
 import snscrape.modules.twitter as sntwitter
 import math
+from tweet import Tweet
 
 def solveAlgo(query, tweets):
-    # Use PrettyTable to print the tweets
-    t = PrettyTable(['ID', 'Likes', 'Retweets', 'Replies', 'Media Count', 'Keyword Count', 'Interaction Score', 'Relatability Score', 'URL'])
+
+    tweetList = []
 
     for tweet in tweets:
         # Calculate the total media attached to the post
         mediaCount = 0
+        media = []
         if tweet['media'] is not None:
-            mediaCount = tweet['media'].__len__()
+            for m in tweet['media']:
+                if type(m) == sntwitter.Photo:
+                    mediaCount += 1
+                    media.append({
+                        'type': 'photo',
+                        'url': m.fullUrl
+                    })
+                elif type(m) == sntwitter.Video:
+                    mediaCount += 1
+                    for videoType in m.variants:
+                        if videoType.contentType != 'application/x-mpegURL':
+                            media.append({
+                                'type': 'video',
+                                'url': videoType.url,
+                                'contentType': videoType.contentType
+                            })
 
         likes = tweet['likes']
         retweets = tweet['retweets']
@@ -28,7 +45,37 @@ def solveAlgo(query, tweets):
 
         # Calculate the relatability score of the tweet
         relatabilityScore = ((mediaCount) + (interactionScore)) * keywordCount
-        t.add_row([tweet['id'], likes, retweets, replies, mediaCount, keywordCount, interactionScore, relatabilityScore, 'https://twitter.com/anyuser/status/' + str(tweet['id'])])
+
+        # Default to query location if tweet location is not available
+        location = {
+            'type': 'Point',
+            'coordinates': [float(query.location.split(',')[0]), float(query.location.split(',')[1])]
+        }
+        if tweet['coordinates'] is not None:
+            location = {
+                'type': 'Point',
+                'coordinates': [tweet['coordinates'].longitude, tweet['coordinates'].latitude]
+            }
+
+        # Create a new tweet object
+        _tweet = Tweet(
+            tweet['id'],
+            query.id,
+            likes, 
+            retweets, 
+            replies,
+            tweet['date'],
+            location,
+            tweet['content'],
+            media, 
+            keywordCount, 
+            interactionScore, 
+            relatabilityScore
+        )
+
+        tweetList.append(_tweet)
+
+    return tweetList
 
 def debugTweets(tweets):
     t = PrettyTable(['ID', 'Likes', 'Date', 'Location', 'Media'])
@@ -47,7 +94,7 @@ def debugTweets(tweets):
                 elif type(m) == sntwitter.Gif:
                     media = None
 
-        t.add_row([tweet['id'], tweet['likes'], tweet['date'], tweet['location'], media])
+        t.add_row([tweet['id'], tweet['likes'], tweet['date'], tweet['coordinates'], media])
 
     f.write(t.get_string())
     f.close()

@@ -1,12 +1,35 @@
-import uuid
-
 class Query():
-    def __init__(self, location, keywords, frequency, maxTweets):
-        self.id = uuid.uuid4()
+    def __init__(self, name, location, startDate, endDate, keywords, frequency, maxTweets):
+        self.id = None
+        self.name = name
         self.location = location
+        self.startDate = startDate
+        self.endDate = endDate
         self.keywords = keywords
         self.frequency = frequency
         self.maxTweets = maxTweets
 
+    def getDict(self):
+        if self.id is None:
+            return {
+                'name': self.name,
+                'location': self.location,
+                'startDate': self.startDate,
+                'endDate': self.endDate,
+                'keywords': self.keywords,
+                'frequency': self.frequency,
+                'maxTweets': self.maxTweets
+            }
+        return {
+            '_id': self.id,
+            'name': self.name,
+            'location': self.location,
+            'startDate': self.startDate,
+            'endDate': self.endDate,
+            'keywords': self.keywords,
+            'frequency': self.frequency,
+            'maxTweets': self.maxTweets
+        }
+
     def __str__(self):
-        return 'Query: ID - ' + str(self.id) + ' ' + self.location + ' ' + self.keywords + ' ' + self.frequency + ' ' + self.maxTweets
+        return str(self.getDict())

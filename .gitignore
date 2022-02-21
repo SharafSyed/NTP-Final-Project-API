@@ -1,5 +1,5 @@
 *__pycache__
 *vscode
 *.DS_Store
-algoOutput.txt
+*.env
 output.txt

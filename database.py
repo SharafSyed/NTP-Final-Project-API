@@ -42,7 +42,7 @@ class Database():
             operations.append(pymongo.UpdateOne({'id': tweet.id}, {'$set': tweet.getDict()}, upsert=True))
         self.tweetsCollection.bulk_write(operations)
 
-    def getBestTweets(self, max, query):
+    def getBestTweetsFromQuery(self, max, query):
         tweets = []
         for tweetJSON in self.tweetsCollection.find({'qId': query.id}).sort('rs', pymongo.DESCENDING).limit(max):
             tweetJSON['qId'] = str(tweetJSON['qId'])

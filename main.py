@@ -118,7 +118,7 @@ def newQuery():
         }
 
 # Route to delete a query
-@app.route('/query/remove/<string:id>', methods=['POST'])
+@app.route('/query/<string:id>/remove', methods=['POST'])
 def removeQuery(id):
     print('- Removing query ' + id + '...')
     for query in queries:
@@ -136,11 +136,11 @@ def removeQuery(id):
         'message': 'Query not found'
     }
 
-@app.route('/query/list/<string:id>', methods=['GET'])
+@app.route('/query/<string:id>/tweets', methods=['GET'])
 def getTweetsFromQuery(id):
     for query in queries:
         if query.id == ObjectId(id):
-            tweets = db.getBestTweets(int(request.args.to_dict()['max']), query)
+            tweets = db.getBestTweetsFromQuery(int(request.args.to_dict()['max']), query)
             return {
                 'status': 200,
                 'message': 'Successfully retrieved tweets',
@@ -151,11 +151,11 @@ def getTweetsFromQuery(id):
         'message': 'Query not found'
     }
 
-@app.route('/query/list/geojson/<string:id>', methods=['GET'])
+@app.route('/query/<string:id>/geojson', methods=['GET'])
 def getTweetsFromQueryGeoJSON(id):
     for query in queries:
         if query.id == ObjectId(id):
-            tweets = db.getBestTweets(query.maxTweets, query)
+            tweets = db.getBestTweetsFromQuery(query.maxTweets, query)
             response = {
                 'type': 'FeatureCollection',
                 'features': []
@@ -179,7 +179,7 @@ def getTweetsFromQueryGeoJSON(id):
         'message': 'Query not found'
     }
 
-@app.route('/query/active/list/geojson', methods=['GET'])
+@app.route('/queries/active/list/geojson', methods=['GET'])
 def getGeoJSONFromAllActiveQueries():
     response = {
         'type': 'FeatureCollection',
@@ -187,7 +187,7 @@ def getGeoJSONFromAllActiveQueries():
     }
     for query in queries:
         try:
-            tweets = db.getBestTweets(query.maxTweets, query)
+            tweets = db.getBestTweetsFromQuery(query.maxTweets, query)
         except:
             return {
                 'status': 500,
@@ -207,6 +207,39 @@ def getGeoJSONFromAllActiveQueries():
         'status': 200,
         'message': 'Successfully retrieved tweets',
         'geojson': response
+    }
+
+@app.route('/queries/active/list/tweets', methods=['GET'])
+def getTweetsFromAllActiveQueries():
+    response = []
+    for query in queries:
+        try:
+            tweets = db.getBestTweetsFromQuery(query.maxTweets, query)
+        except:
+            return {
+                'status': 500,
+                'message': 'Query not found'
+            }
+        for tweet in tweets:
+            response.append(tweet.getJSON())
+
+    response.sort(key=lambda x: x['rs'], reverse=True)
+
+    if (request.args.to_dict()['limit'] != None):
+        response = response[:int(request.args.to_dict()['limit'])]
+
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved tweets',
+        'tweets': response
+    }
+
+@app.route('/queries/active/list', methods=['GET'])
+def getActiveQueries():
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved queries',
+        'queries': [query.getJSON() for query in queries]
     }
 
 if __name__ == '__main__':

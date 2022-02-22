@@ -32,6 +32,22 @@ class Tweet():
             'rs': self.relatabilityScore
         }
 
+    def getJSON(self):
+        return {
+            'id': str(self.id),
+            'qId': str(self.queryId),
+            'likes': self.likes,
+            'rt': self.retweets,
+            'rp': self.replies,
+            'date': self.date.isoformat(),
+            'loc': self.location,
+            'content': self.content,
+            'media': self.media,
+            'kc': self.keywordCount,
+            'is': self.interactionScore,
+            'rs': self.relatabilityScore
+        }
+
     def fromDict(dict):
         return Tweet(
             dict['id'],

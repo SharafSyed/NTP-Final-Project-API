@@ -136,6 +136,27 @@ def removeQuery(id):
         'message': 'Query not found'
     }
 
+@app.route('/query/<string:id>', methods=['GET'])
+def getQuery(id):
+    # Sometimes in the application, we will recieve an undefined ID, this is to prevent that
+    if (id == 'undefined'):
+        return {
+            'status': 400,
+            'message': 'Query ID not specified'
+        }
+
+    for query in queries:
+        if query.id == ObjectId(id):
+            return {
+                'status': 200,
+                'message': 'Successfully retrieved query',
+                'query': query.getJSON()
+            }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    }
+
 @app.route('/query/<string:id>/tweets', methods=['GET'])
 def getTweetsFromQuery(id):
     for query in queries:
@@ -171,7 +192,7 @@ def getTweetsFromQueryGeoJSON(id):
                 })
             return {
                 'status': 200,
-                'message': 'Successfully retrieved tweets',
+                'message': 'Successfully retrieved GeoJSON',
                 'geojson': response
             }
     return {

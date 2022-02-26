@@ -1,4 +1,3 @@
-from tkinter import E
 import pymongo
 import urllib.parse
 import sys

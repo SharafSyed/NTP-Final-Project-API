@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from bson.objectid import ObjectId
 import snscrape.modules.twitter as sntwitter
 import os
+import sys
 import atexit
 
 from flask import Flask, request
@@ -34,11 +35,11 @@ def fetchTweetsLite(query):
     # If timeout is enabled, check if the query has timed out
     if timeoutQueries:
         if datetime.datetime.today() > query.endDate:
-            print(f'- Ending fetching of tweets for query {str(query.id)} - {query.name}')
+            print(f'- Ending fetching of tweets for query {str(query.id)} - {query.name}', file=sys.stdout)
             removeQuery(str(query.id))
             return
 
-    print(f'🔎 Fetching tweets for query {query.id}')
+    print(f'🔎 Fetching tweets for query {query.id}', file=sys.stdout)
 
     tweetList = []
 
@@ -64,18 +65,18 @@ def fetchTweetsLite(query):
             })
 
     # Solve the resulting tweets with the algorithm
-    print(f'✅ {str(tweetList.__len__())}/{str(query.maxTweets)} tweets fetched for {query.id} - {query.name}')
+    print(f'✅ {str(tweetList.__len__())}/{str(query.maxTweets)} tweets fetched for {query.id} - {query.name}', file=sys.stdout)
     db.addTweets(algo.solveAlgo(query, tweetList))
 
 # Schedule the queries
 def scheduleQuery(query):
     sched.add_job(fetchTweetsLite, 'interval', minutes=query.frequency, args=[query], id=str(query.id))
-    print(f'✅ Scheduled fetching of tweets every {str(query.frequency)} minutes for query {str(query.id)} - {query.name}')
+    print(f'✅ Scheduled fetching of tweets every {str(query.frequency)} minutes for query {str(query.id)} - {query.name}', file=sys.stdout)
 
 # Unschedule the queries
 def unscheduleQuery(query):
     sched.remove_job(str(query.id))
-    print(f'🛑 Unscheduled fetching of tweets for query {str(query.id)} - {query.name}')
+    print(f'🛑 Unscheduled fetching of tweets for query {str(query.id)} - {query.name}', file=sys.stdout)
 
 # On startup, schedule the queries
 for query in queries:
@@ -120,10 +121,10 @@ def newQuery():
 # Route to delete a query
 @app.route('/query/<string:id>/remove', methods=['POST'])
 def removeQuery(id):
-    print('- Removing query ' + id + '...')
+    print('- Removing query ' + id + '...', file=sys.stdout)
     for query in queries:
         if query.id == ObjectId(id):
-            print('- Found query ' + id)
+            print('- Found query ' + id, file=sys.stdout)
             db.removeQuery(ObjectId(id))
             unscheduleQuery(query)
             queries.remove(query)

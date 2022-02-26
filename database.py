@@ -1,20 +1,21 @@
 from tkinter import E
 import pymongo
 import urllib.parse
+import sys
 
 from query import Query
 from tweet import Tweet
 
 class Database():
     def __init__(self, host, username, password):
-        print("- Connecting to database...")
+        print("- Connecting to database...", file=sys.stdout)
         try:
             uri = "mongodb://%s:%s@%s/?authSource=crowd-app" % (urllib.parse.quote_plus(username), urllib.parse.quote_plus(password), urllib.parse.quote_plus(host))
             self.client = pymongo.MongoClient(uri)
             self.db = self.client['crowd-app']
             self.queriesCollection = self.db['queries']
             self.tweetsCollection = self.db['tweets']
-            print("- Connected to database")
+            print("- Connected to database", file=sys.stdout)
         except Exception as e:
             raise e
             

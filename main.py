@@ -88,6 +88,14 @@ app = Flask(__name__)
 CORS(app)
 
 # Route to create a new query
+@app.route('/', methods=['GET'])
+def homeRoute():
+    return {
+        'status': 200,
+        'message': 'Server is running'
+    }
+
+# Route to create a new query
 @app.route('/query/new', methods=['POST'])
 def newQuery():
     args = request.args.to_dict()

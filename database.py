@@ -11,11 +11,18 @@ class Database():
     def __init__(self, host, username, password):
         print("- Connecting to database...", file=sys.stdout)
         try:
+            # Set up the connection URI to the database
             uri = "mongodb://%s:%s@%s/?authSource=crowd-app" % (urllib.parse.quote_plus(username), urllib.parse.quote_plus(password), urllib.parse.quote_plus(host))
+            
+            # Connect to the database
             self.client = pymongo.MongoClient(uri)
+
+            # Setup database and collections
             self.db = self.client['crowd-app']
             self.queriesCollection = self.db['queries']
             self.tweetsCollection = self.db['tweets']
+
+            # Check if the database is connected
             self.client.admin.command('ismaster')
             print("✅ Connected to database", file=sys.stdout)
         except ConnectionFailure:
@@ -40,8 +47,10 @@ class Database():
         self.queriesCollection.delete_one({'_id': id})
 
     def addTweets(self, tweets):
+        # Use bulk operations to insert all tweets in one go while maintaining old tweets
         operations = []
         for tweet in tweets:
+            # Update existing tweet if it already exists, otherwise insert new tweet
             operations.append(pymongo.UpdateOne({'id': tweet.id}, {'$set': tweet.getDict()}, upsert=True))
         self.tweetsCollection.bulk_write(operations)
 

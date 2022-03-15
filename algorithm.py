@@ -5,6 +5,7 @@ from tweet import Tweet
 
 def solveAlgo(query, tweets):
 
+    # Initialize empty list of tweets
     tweetList = []
 
     for tweet in tweets:
@@ -77,6 +78,7 @@ def solveAlgo(query, tweets):
 
     return tweetList
 
+# Used for testing the algorithm and tweet fetching
 def debugTweets(tweets):
     t = PrettyTable(['ID', 'Likes', 'Date', 'Location', 'Media'])
     f = open("output.txt", "w")

@@ -1,4 +1,5 @@
 from tkinter import E
+from pymongo.errors import ConnectionFailure
 import pymongo
 import urllib.parse
 import sys
@@ -15,9 +16,10 @@ class Database():
             self.db = self.client['crowd-app']
             self.queriesCollection = self.db['queries']
             self.tweetsCollection = self.db['tweets']
-            print("- Connected to database", file=sys.stdout)
-        except Exception as e:
-            raise e
+            self.client.admin.command('ismaster')
+            print("✅ Connected to database", file=sys.stdout)
+        except ConnectionFailure:
+            print("🛑 Could not connect to database", file=sys.stderr)
             
     def addQuery(self, query):
         _object = self.queriesCollection.insert_one(query.getDict())

@@ -7,7 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from bson.objectid import ObjectId
 import snscrape.modules.twitter as sntwitter
 import json
-from six.moves.urllib.request import urlopen
+from urllib.request import urlopen
 from jose import jwt
 import os
 import sys
@@ -369,6 +369,6 @@ def getActiveQueries():
     }
 
 if __name__ == '__main__':
-    app.run()
+    app.run(threaded=True)
     atexit.register(lambda: sched.shutdown())
     atexit.register(lambda: db.client.close())

@@ -1,4 +1,3 @@
-from tkinter import E
 from pymongo.errors import ConnectionFailure
 import pymongo
 import urllib.parse

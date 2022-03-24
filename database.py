@@ -40,7 +40,7 @@ class Database():
         return queries
     
     def updateQuery(self, id, query):
-        self.queriesCollection.update_one({'_id': id}, {'$set': query.getDict()})
+        self.queriesCollection.update_one({'_id': id}, {'$set': query.getDict()}, upsert=True)
 
     def removeQuery(self, id):
         self.queriesCollection.delete_one({'_id': id})

@@ -145,6 +145,57 @@ def removeQuery(id):
         'message': 'Query not found'
     }
 
+# Route to update a query
+@app.route('/query/<string:id>/update', methods=['POST'])
+def updateQuery(id):
+    print('- Updating query ' + id + '...', file=sys.stdout)
+    for query in queries:
+        if query.id == ObjectId(id):
+            print('- Found query ' + id, file=sys.stdout)
+            args = request.args.to_dict()
+
+            # Edit time to make sure it ends at the end of the day
+            endTime = datetime.datetime.strptime(args['end'], '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=0)
+
+            keywords = args['keywords'].split(',')
+            for i, keyword in enumerate(keywords):
+                if " " in keywords[i]:
+                    keywords[i] = '(' + keywords[i] + ')'
+
+            if args['name'] != query.name or args['loc'] != query.location or args['start'] != query.startDate.strftime('%Y-%m-%d') or args['end'] != query.endDate.strftime('%Y-%m-%d') or args['freq'] != query.frequency or args['max'] != query.maxTweets:
+                try:
+                    newQuery = Query(args['name'], args['loc'], datetime.datetime.strptime(args['start'], '%Y-%m-%d'), endTime, keywords, float(args['freq']), int(args['max']))
+                    newQuery.id = ObjectId(id)
+
+                    db.updateQuery(ObjectId(id), newQuery)
+
+                    unscheduleQuery(query)
+                    queries.remove(query)
+
+                    scheduleQuery(newQuery)
+                    queries.append(newQuery)
+
+                    print(f'✅ Query {id} updated', file=sys.stdout)
+
+                    return {
+                        'status': 200,
+                        'message': 'Query successfully updated'
+                    }
+                except:
+                    return {
+                        'status': 500,
+                        'message': 'Error updating query, check the arguments'
+                    }
+
+            return {
+                'status': 200,
+                'message': 'Nothing to update. Query successfully updated'
+            }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    }
+
 @app.route('/query/<string:id>', methods=['GET'])
 def getQuery(id):
     # Sometimes in the application, we will recieve an undefined ID, this is to prevent that

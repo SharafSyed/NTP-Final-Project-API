@@ -221,12 +221,23 @@ def getQuery(id):
 def getTweetsFromQuery(id):
     for query in queries:
         if query.id == ObjectId(id):
-            tweets = db.getBestTweetsFromQuery(int(request.args.to_dict()['max']), query)
-            return {
-                'status': 200,
-                'message': 'Successfully retrieved tweets',
-                'tweets': [tweet.getDict() for tweet in tweets]
-            }
+            try:
+                response = []
+                tweets = db.getBestTweetsFromQuery(int(request.args.to_dict()['limit']), query)
+
+                for tweet in tweets:
+                    response.append(tweet.getJSON())
+
+                return {
+                    'status': 200,
+                    'message': 'Successfully retrieved tweets',
+                    'tweets': response
+                }
+            except:
+                return {
+                    'status': 500,
+                    'message': 'Error retrieving tweets'
+                }
     return {
         'status': 500,
         'message': 'Query not found'

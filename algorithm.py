@@ -8,6 +8,9 @@ def solveAlgo(query, tweets):
     # Initialize empty list of tweets
     tweetList = []
 
+    #anti keyword list
+    blacklist = ['warning', 'watch']
+
     for tweet in tweets:
         # Calculate the total media attached to the post
         mediaCount = 0
@@ -43,9 +46,16 @@ def solveAlgo(query, tweets):
         keywordCount = 0
         for k in query.keywords:
             keywordCount += tweet['content'].lower().count(k.replace('(', '').replace(')', '').lower())
+        
+        blacklistCount = 0
+        for b in blacklist:
+            blacklistCount += tweet['content'].lower().count(b)
 
         # Calculate the relatability score of the tweet
         relatabilityScore = ((mediaCount) + (interactionScore)) * keywordCount
+
+        if blacklistCount > 0:
+            relatabilityScore = 0
 
         # Default to query location if tweet location is not available
         location = {

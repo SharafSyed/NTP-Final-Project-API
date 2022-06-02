@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from database import Database
 from query import Query
+from archivedQuery import ArchivedQuery
 import algorithm as algo
 import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,6 +29,9 @@ db = Database(str(os.environ.get("MONGODB_HOST")), str(os.environ.get("MONGODB_U
 
 # Populate local queries
 queries = db.getQueries()
+
+# Populate archived queries
+archivedQueries = db.getArchivedQueries()
 
 # Fetch the queries then send the results to the algorithm
 def fetchTweetsLite(query):
@@ -145,6 +149,38 @@ def removeQuery(id):
         'message': 'Query not found'
     }
 
+# Route to archive a query, simultaneously removing it from the active queries
+@app.route('/query/<string:id>/archive', methods=['POST'])
+def archiveQuery(id):
+    for query in queries:
+        if query.id == ObjectId(id):
+            print('- Found query ' + id, file=sys.stdout)
+            print('- Archiving query '+ id + '...', file = sys.stdout)
+            db.archiveQuery(ObjectId(id), query)
+            queryJSON = query.getDict()
+            aQuery = ArchivedQuery(queryJSON['name'], queryJSON['location'], queryJSON['startDate'], queryJSON['endDate'], queryJSON['keywords'], queryJSON['frequency'], queryJSON['maxTweets'], False)
+            aQuery.id = queryJSON['_id']
+            archivedQueries.append(aQuery)
+            unscheduleQuery(query)
+            queries.remove(query)
+            return {
+                'status': 200,
+                'message': 'Query successfully archived'
+            }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    }
+
+@app.route('/query/<string:id>/archive/remove', methods=['POST'])
+def removeArchivedQuery(id):
+    print('- Removing archived query '+ id + '...', file = sys.stdout)
+    for query in archivedQueries:
+        if query.id == ObjectId(id):
+            print('- Found query ' + id, file=sys.stdout)
+            db.removeArchivedQuery(ObjectId(id))
+            archivedQueries.remove(query)
+            
 # Route to update a query
 @app.route('/query/<string:id>/update', methods=['POST'])
 def updateQuery(id):
@@ -196,6 +232,34 @@ def updateQuery(id):
         'message': 'Query not found'
     }
 
+@app.route('/query/archive/<string:id>/public', methods = ['POST'])
+def changeQueryPublic(id):
+    for query in archivedQueries:
+        if query.id == ObjectId(id):
+            print('- Found query ' + id, file=sys.stdout)
+            args = request.args.to_dict()
+            print(eval(args['isPublic'].capitalize()))
+            try:
+                newArchivedQuery = query
+                newArchivedQuery.isPublic = eval(args['isPublic'].capitalize())
+                db.updateArchivedQuery(ObjectId(id), newArchivedQuery)
+                return {
+                    'status': 200,
+                    'message': 'Query successfully updated'
+                }
+            except:
+                return {
+                    'status': 500,
+                    'message': 'Error updating query, check the arguments'
+                }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    } 
+        
+
+
+
 @app.route('/query/<string:id>', methods=['GET'])
 def getQuery(id):
     # Sometimes in the application, we will recieve an undefined ID, this is to prevent that
@@ -217,13 +281,33 @@ def getQuery(id):
         'message': 'Query not found'
     }
 
+@app.route('/query/archive/<string:id>', methods = ['GET'])
+def getArchivedQuery(id):
+    if (id == 'undefined'):
+        return {
+            'status': 400,
+            'message': 'Query ID not specified'
+        }
+
+    for query in archivedQueries:
+        if query.id == ObjectId(id):
+            return {
+                'status': 200,
+                'message': 'Successfully retrieved archived query',
+                'query': query.getJSON()
+            }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    }
+
 @app.route('/query/<string:id>/tweets', methods=['GET'])
 def getTweetsFromQuery(id):
     for query in queries:
         if query.id == ObjectId(id):
             try:
                 response = []
-                tweets = db.getBestTweetsFromQuery(int(request.args.to_dict()['limit']), query)
+                tweets = db.getBestTweetsFromQuery(int(request.ar2gs.to_dict()['limit']), query)
 
                 for tweet in tweets:
                     response.append(tweet.getJSON())
@@ -243,11 +327,65 @@ def getTweetsFromQuery(id):
         'message': 'Query not found'
     }
 
+@app.route('/query/archive/<string:id>/tweets', methods = ['GET'])
+def getTweetsFromArchivedQuery(id):
+    for query in archivedQueries:
+        if query.id == ObjectId(id):
+            try:
+                response = []
+                tweets = db.getBestTweetsFromArchivedQuery(int(request.ar2gs.to_dict()['limit']), query)
+
+                for tweet in tweets:
+                    response.append(tweet.getJSON())
+
+                return {
+                    'status': 200,
+                    'message': 'Successfully retrieved tweets',
+                    'tweets': response
+                }
+            except:
+                return {
+                    'status': 500,
+                    'message': 'Error retrieving tweets'
+                }
+    return {
+        'status': 500,
+        'message': 'Archived query not found'
+    }
+
 @app.route('/query/<string:id>/geojson', methods=['GET'])
 def getTweetsFromQueryGeoJSON(id):
     for query in queries:
         if query.id == ObjectId(id):
             tweets = db.getBestTweetsFromQuery(query.maxTweets, query)
+            response = {
+                'type': 'FeatureCollection',
+                'features': []
+            }
+            for tweet in tweets:
+                response['features'].append({
+                    'type': 'Feature',
+                    'properties': {
+                        'id': str(tweet.id),
+                        'score': tweet.relatabilityScore
+                    },
+                    'geometry': tweet.location
+                })
+            return {
+                'status': 200,
+                'message': 'Successfully retrieved GeoJSON',
+                'geojson': response
+            }
+    return {
+        'status': 500,
+        'message': 'Query not found'
+    }
+
+@app.route('/query/archive/<string:id>/geojson', methods=['GET'])
+def getTweetsFromArchivedQueryGeoJSON(id):
+    for query in archivedQueries:
+        if query.id == ObjectId(id):
+            tweets = db.getBestTweetsFromArchivedQuery(query.maxTweets, query)
             response = {
                 'type': 'FeatureCollection',
                 'features': []
@@ -301,6 +439,36 @@ def getGeoJSONFromAllActiveQueries():
         'geojson': response
     }
 
+@app.route('/queries/archive/list/geojson', methods=['GET'])
+def getGeoJSONFromAllArchivedQueries():
+    response = {
+        'type': 'FeatureCollection',
+        'features': []
+    }
+    for query in queries:
+        try:
+            tweets = db.getBestTweetsFromArchivedQuery(query.maxTweets, query)
+        except:
+            return {
+                'status': 500,
+                'message': 'Query not found'
+            }
+        for tweet in tweets:
+            response['features'].append({
+                'type': 'Feature',
+                'properties': {
+                    'id': str(tweet.id),
+                    'score': tweet.relatabilityScore,
+                    'query': str(query.id)
+                },
+                'geometry': tweet.location
+            })
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved tweets',
+        'geojson': response
+    }    
+
 @app.route('/queries/active/list/tweets', methods=['GET'])
 def getTweetsFromAllActiveQueries():
     response = []
@@ -326,12 +494,52 @@ def getTweetsFromAllActiveQueries():
         'tweets': response
     }
 
+@app.route('/queries/archive/list/tweets', methods=['GET'])
+def getTweetsFromAllArchivedQueries():
+    response = []
+    for query in queries:
+        try:
+            tweets = db.getBestTweetsFromArchivedQuery(query.maxTweets, query)
+        except:
+            return {
+                'status': 500,
+                'message': 'Query not found'
+            }
+        for tweet in tweets:
+            response.append(tweet.getJSON())
+
+    response.sort(key=lambda x: x['rs'], reverse=True)
+
+    if (request.args.to_dict()['limit'] != None):
+        response = response[:int(request.args.to_dict()['limit'])]
+
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved tweets',
+        'tweets': response
+    }
+
 @app.route('/queries/active/list', methods=['GET'])
 def getActiveQueries():
     return {
         'status': 200,
         'message': 'Successfully retrieved queries',
         'queries': [query.getJSON() for query in queries]
+    }
+@app.route('/queries/archive/list', methods=['GET'])
+def getArchivedQueries():
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved queries',
+        'queries': [query.getJSON() for query in archivedQueries]
+    }
+
+@app.route('/queries/archive/public/list', methods = ['GET'])
+def getPublicQueries():
+    return {
+        'status': 200,
+        'message': 'Successfully retrieved queries',
+        'queries': [query.getJSON() for query in archivedQueries if query.isPublic == True]
     }
 
 if __name__ == '__main__':

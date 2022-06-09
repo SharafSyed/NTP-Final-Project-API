@@ -61,6 +61,15 @@ class Database():
             archivedQuery.id = archivedQueryJSON['_id']
             archivedQueries.append(archivedQuery)
         return archivedQueries
+    
+    def getPublicQueries(self):
+        publicQueries = []
+        for archivedQueryJSON in self.archivedQueriesCollection.find():
+            if(archivedQueryJSON['isPublic']):
+                publicQuery = ArchivedQuery(archivedQueryJSON['name'], archivedQueryJSON['location'], archivedQueryJSON['startDate'], archivedQueryJSON['endDate'], archivedQueryJSON['keywords'], archivedQueryJSON['frequency'], archivedQueryJSON['maxTweets'], archivedQueryJSON['isPublic'])
+                publicQuery.id = archivedQueryJSON['_id']
+                publicQueries.append(publicQuery)
+        return publicQueries
         
     def removeArchivedQuery(self, id):
         self.archivedQueriesCollection.delete_one({'_id': id})
@@ -91,7 +100,13 @@ class Database():
     
     def getBestTweetsFromArchivedQuery(self, max, archivedQuery):
         tweets = []
-        for tweetJSON in self.tweetsCollection.find({'qId': archivedQuery.id}).sort('rs', pymongo.DESCENDING).limit(max):
-            tweetJSON['qId'] = str(tweetJSON['qId'])
-            tweets.append(Tweet.fromDict(tweetJSON))
-        return tweets
+        if max == 0:
+            for tweetJSON in self.tweetsCollection.find({'qId': archivedQuery.id}).sort('rs', pymongo.DESCENDING):
+                tweetJSON['qId'] = str(tweetJSON['qId'])
+                tweets.append(Tweet.fromDict(tweetJSON))
+            return tweets
+        else:
+            for tweetJSON in self.tweetsCollection.find({'qId': archivedQuery.id}).sort('rs', pymongo.DESCENDING).limit(max):
+                tweetJSON['qId'] = str(tweetJSON['qId'])
+                tweets.append(Tweet.fromDict(tweetJSON))
+            return tweets

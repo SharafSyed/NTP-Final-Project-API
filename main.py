@@ -363,8 +363,6 @@ def getTweetsFromArchivedQuery(id):
         'message': 'Archived query not found'
     }
 
-
-
 @app.route('/query/<string:id>/geojson', methods=['GET'])
 def getTweetsFromQueryGeoJSON(id):
     for query in queries:

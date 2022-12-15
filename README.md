@@ -1,3 +1,6 @@
+## THIS PROJECT WAS ORIGINALLY CREATED BY [towner-10](https://github.com/towner-10)
+### The program was adapted and altered for the use of Northern Tornadoes Project
+
 <div id="top"></div>
 
 <div align="center">
